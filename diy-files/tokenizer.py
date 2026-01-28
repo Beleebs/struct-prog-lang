@@ -1,5 +1,6 @@
 import re
 import sys
+from pprint import pprint
 
 # p = re.compile("ab*")
 
@@ -85,8 +86,15 @@ def test_digits():
     assert t[0]["value"] == 1
     assert t[1]["tag"] is None
 
+def test_operators():
+    print("testing operators")
+    t = tokenize("+ - / *")
+    tags = [tok["tag"] for tok in t[:-1]]
+    assert tags == ["+", "-", "/", "*"]
+
 if __name__ == "__main__":
     test_digits() 
+    test_operators()
     print("done.")           
 
         
