@@ -1,14 +1,12 @@
 import re
-import sys
 from pprint import pprint
 
 # p = re.compile("ab*")
 
-# if len(sys.argv) > 1:
-#     if p.match(sys.argv[1]):
-#         print("match")
-#     else:
-#         print("not match")
+# if p.match("abbbbbbb") :
+#     print("match")
+# else:
+#     print("not match")
 
 patterns = [
     (r"\s+", "whitespace"),
@@ -17,52 +15,41 @@ patterns = [
     (r"\-", "-"),
     (r"\/", "/"),
     (r"\*", "*"),
+    (r"\(", "("),
+    (r"\)", ")"),
     (r".", "error"),
 ]
 
-# Comprehension
-# goes like this:
-# for every p, tag in patterns:
-# take every element and compute re.compile(p) coupled with tag
-# place the result of everything back into patterns
-# faster than a for loop...
 patterns = [(re.compile(p), tag) for p, tag in patterns]
 
-# tokenize function
-# takes in characters for parameter
-def tokenize(chars):
+
+def tokenize(characters):
     "Tokenize a string using the patterns above"
     tokens = []
-    pos = 0
+    position = 0
     line = 1
     column = 1
     current_tag = None
 
-    while pos < len(chars):
+    while position < len(characters):
         for pattern, tag in patterns:
-            # partial match at pos
-            match = pattern.match(chars, pos)
+            match = pattern.match(characters, position)
             if match:
                 current_tag = tag
                 break
         assert match is not None
         value = match.group(0)
 
-        # if there is an unexpected character, throw an exception
         if current_tag == "error":
             raise Exception(f"Unexpected character: {value!r}")
-        
-        # otherwise, take in tokens until whitespace is hit
-        if current_tag != "whitespace":
-            token = {"tag": tag, "line": line, "column": column}
-            # check to see if its a number, add that value to the 
+
+        if tag != "whitespace":
+            token = {"tag": current_tag, "line": line, "column": column}
             if current_tag == "number":
                 token["value"] = int(value)
             tokens.append(token)
 
-        # checks to see if the character is a new line or just new character
-        # if new line, increment line and reset column
-        # otherwise, increment column
+        # advance position and update line/column
         for ch in value:
             if ch == "\n":
                 line += 1
@@ -71,12 +58,12 @@ def tokenize(chars):
                 column += 1
         position = match.end()
 
-        tokens.append({"tag": None, "line": line, "column": column})
-        return tokens
+    tokens.append({"tag": None, "line": line, "column": column})
+    return tokens
 
 
 def test_digits():
-    print("testing tokenize digits")
+    print("test tokenize digits")
     t = tokenize("123")
     assert t[0]["tag"] == "number"
     assert t[0]["value"] == 123
@@ -86,15 +73,50 @@ def test_digits():
     assert t[0]["value"] == 1
     assert t[1]["tag"] is None
 
+
 def test_operators():
-    print("testing operators")
-    t = tokenize("+ - / *")
-    tags = [tok["tag"] for tok in t[:-1]]
-    assert tags == ["+", "-", "/", "*"]
+    print("test tokenize operators")
+    t = tokenize("+ - * / ( )")
+    tags = [tok["tag"] for tok in t]
+    assert tags == ["+", "-", "*", "/", "(", ")", None]
+
+
+def test_expressions():
+    print("test tokenize expressions")
+    t = tokenize("1+222*3")
+    assert t[0]["tag"] == "number" and t[0]["value"] == 1
+    assert t[1]["tag"] == "+"
+    assert t[2]["tag"] == "number" and t[2]["value"] == 222
+    assert t[3]["tag"] == "*"
+    assert t[4]["tag"] == "number" and t[4]["value"] == 3
+    assert t[5]["tag"] is None
+
+
+def test_whitespace():
+    print("test tokenize whitespace")
+    t = tokenize("1 +\t2  \n*    3")
+    assert t[0]["tag"] == "number" and t[0]["value"] == 1
+    assert t[1]["tag"] == "+"
+    assert t[2]["tag"] == "number" and t[2]["value"] == 2
+    assert t[3]["tag"] == "*"
+    assert t[4]["tag"] == "number" and t[4]["value"] == 3
+    assert t[5]["tag"] is None
+
+
+def test_error():
+    print("test tokenize error")
+    try:
+        t = tokenize("1@@@ +\t2  \n*    3")
+    except Exception as e:
+        assert str(e) == "Unexpected character: '@'"
+        return
+    assert Exception("Error did not happen.")
+
 
 if __name__ == "__main__":
-    test_digits() 
+    test_digits()
     test_operators()
-    print("done.")           
-
-        
+    test_expressions()
+    test_whitespace()
+    test_error()
+    print("done.")

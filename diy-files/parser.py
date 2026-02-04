@@ -37,14 +37,11 @@ def parse_term(tokens):
 
 def test_parse_term():
     """term = factor { ( "*" | "/" ) factor }"""
-    print("test parse_term()")
+    print("test parse_term()", "3*4")
     tokens = tokenize("3*4")
     ast, tokens = parse_term(tokens)
-    pprint(ast)
-    pprint(tokens)
     print("complete")
     exit()
-
 
 if __name__ == "__main__":
     test_parse_factor()
