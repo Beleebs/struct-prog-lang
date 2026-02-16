@@ -1,13 +1,6 @@
 import re
 from pprint import pprint
 
-# p = re.compile("ab*")
-
-# if p.match("abbbbbbb") :
-#     print("match")
-# else:
-#     print("not match")
-
 patterns = [
     (r"\s+", "whitespace"),
     (r"\d+", "number"),
@@ -22,7 +15,6 @@ patterns = [
 ]
 
 patterns = [(re.compile(p), tag) for p, tag in patterns]
-
 
 def tokenize(characters):
     "Tokenize a string using the patterns above"
@@ -62,7 +54,6 @@ def tokenize(characters):
     tokens.append({"tag": None, "line": line, "column": column})
     return tokens
 
-
 def test_digits():
     print("test tokenize digits")
     t = tokenize("123")
@@ -74,14 +65,6 @@ def test_digits():
     assert t[0]["value"] == 1
     assert t[1]["tag"] is None
 
-
-def test_operators():
-    print("test tokenize operators")
-    t = tokenize("+ - * / ( ) %")
-    tags = [tok["tag"] for tok in t]
-    assert tags == ["+", "-", "*", "/", "(", ")", "%", None]
-
-
 def test_expressions():
     print("test tokenize expressions")
     t = tokenize("1+222*3")
@@ -91,7 +74,6 @@ def test_expressions():
     assert t[3]["tag"] == "*"
     assert t[4]["tag"] == "number" and t[4]["value"] == 3
     assert t[5]["tag"] is None
-
 
 def test_whitespace():
     print("test tokenize whitespace")
@@ -103,7 +85,6 @@ def test_whitespace():
     assert t[4]["tag"] == "number" and t[4]["value"] == 3
     assert t[5]["tag"] is None
 
-
 def test_error():
     print("test tokenize error")
     try:
@@ -113,6 +94,18 @@ def test_error():
         return
     assert Exception("Error did not happen.")
 
+def test_modulo():
+    print("test modulo operator")
+    t = tokenize("12%5")
+    assert t[0]["tag"] == "number" and t[0]["value"] == 12
+    assert t[1]["tag"] == "%"
+    assert t[2]["tag"] == "number" and t[2]["value"] == 5
+
+def test_operators():
+    print("test tokenize operators")
+    t = tokenize("+ - * / ( ) %")
+    tags = [tok["tag"] for tok in t]
+    assert tags == ["+", "-", "*", "/", "(", ")", "%", None]
 
 if __name__ == "__main__":
     test_digits()
@@ -120,4 +113,5 @@ if __name__ == "__main__":
     test_expressions()
     test_whitespace()
     test_error()
+    test_modulo()
     print("done.")

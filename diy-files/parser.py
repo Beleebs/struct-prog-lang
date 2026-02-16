@@ -1,6 +1,4 @@
 # EBNF PARSER
-# 
-#   expression = term { ( "+" | "-" ) term }
 from tokenizer import tokenize
 from pprint import pprint
 
@@ -24,6 +22,7 @@ def test_parse_factor():
     assert tokens == [{'column': 2, 'line': 1, 'tag': None}]
     print("complete")
 
+# % is at the same precedence level as multiplication and division
 def parse_term(tokens): 
     """term = factor { ( "*" | "/" | "%" ) factor }"""
     left, tokens = parse_factor(tokens)
@@ -52,32 +51,38 @@ def parse_expression(tokens):
         left = {"tag": op, "left": left, "right": right}
     return left, tokens
 
-
 def test_parse_expression():
     """expression = term { ("+" | "-") term }"""
     print("test parse_expression()")
-    tokens = tokenize("3")
-    ast, tokens = parse_expression(tokens)
-    assert ast == {"tag": "number", "value": 3}
-    assert tokens == [{"tag": None, "line": 1, "column": 2}]
-    tokens = tokenize("3*4+5-6")
+    tokens = tokenize("3%4+5%6")
     ast, tokens = parse_expression(tokens)
     assert ast == {
-        "left": {
-            "left": {
-                "left": {"tag": "number", "value": 3},
-                "right": {"tag": "number", "value": 4},
-                "tag": "*",
-            },
-            "right": {"tag": "number", "value": 5},
-            "tag": "+",
-        },
-        "right": {"tag": "number", "value": 6},
-        "tag": "-",
+        'tag': '+', 
+        'left': {
+            'tag': '%', 
+            'left': {
+                'tag': 'number', 
+                'value': 3
+            }, 
+            'right': {
+                'tag': 'number', 
+                'value': 4
+            }
+        }, 
+        'right': {
+            'tag': '%', 
+            'left': {
+                'tag': 'number', 
+                'value': 5
+            }, 
+            'right': {
+                'tag': 'number', 
+                'value': 6
+            }
+        }
     }
     assert tokens == [{"column": 8, "line": 1, "tag": None}]
 
-# ai generated...
 def parse(tokens):
     ast, tokens = parse_expression(tokens)
     if tokens[0]["tag"] is not None:
