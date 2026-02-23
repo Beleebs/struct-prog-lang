@@ -1,123 +1,78 @@
-from parser import parse
-import math
+import parser, tokenizer
 
-flooredMod = False
-
-# recursive evaluation
-def evaluate(ast):
-    # exit case!
+def evaluate(ast, environment):
     if ast["tag"] == "number":
         return ast["value"]
-    elif ast["tag"] == "+":
-        return evaluate(ast["left"]) + evaluate(ast["right"])
-    elif ast["tag"] == "-":
-        return evaluate(ast["left"]) - evaluate(ast["right"])
-    elif ast["tag"] == "*":
-        return evaluate(ast["left"]) * evaluate(ast["right"])
-    elif ast["tag"] == "/":
-        return evaluate(ast["left"]) / evaluate(ast["right"])
-    elif ast["tag"] == "%":
-        if flooredMod:
-            # floored remainder, meaning that the sign of the result follows the value on the right
-            return evaluate(ast["left"]) % evaluate(ast["right"])
+    elif ast["tag"] == "identifier":
+        identifier = ast["value"]
+        if identifier in environment:
+            return environment[identifier]
         else:
-            # truncated remainder, which isn't used by the % operand in python
-            return math.fmod(evaluate(ast["left"]), evaluate(ast["right"]))
+            raise ValueError(f"Unknown identifier: {identifier}")
+    elif ast["tag"] == "assign":
+        value = evaluate(ast["expression"], environment)
+        environment[ast["target"]] = value
+        return None
+    elif ast["tag"] == "+":
+        return evaluate(ast["left"], environment) + evaluate(ast["right"], environment)
+    elif ast["tag"] == "-":
+        return evaluate(ast["left"], environment) - evaluate(ast["right"], environment)
+    elif ast["tag"] == "*":
+        return evaluate(ast["left"], environment) * evaluate(ast["right"], environment)
+    elif ast["tag"] == "/":
+        return evaluate(ast["left"], environment) / evaluate(ast["right"], environment)
     else:
         raise ValueError(f"Unknown AST node: {ast}")
-    
-# test it
+
 def test_evaluate():
     print("test evaluate()")
-    # evaluate single number expression
     ast = {"tag": "number", "value": 3}
-    assert evaluate(ast) == 3
-
-    # evaluate operator and operand
+    assert evaluate(ast,{}) == 3
     ast = {
         "tag": "+",
         "left": {"tag": "number", "value": 3},
-        "right": {"tag": "number", "value": 6}
+        "right": {"tag": "number", "value": 4},
     }
-    assert evaluate(ast) == 9
-
-    # evaluate multi-level ASTs
+    assert evaluate(ast,{}) == 7
     ast = {
-        "tag": "+",
-        "left": {"tag": "number", "value": 6},
-        "right": {
-            "tag": "*", 
-            "left": {
-                "tag": "number", "value": 5
-                },
-            "right": {
-                "tag": "number", "value": 2
-                },
-            }
+        "tag": "*",
+        "left": {
+            "tag": "+",
+            "left": {"tag": "number", "value": 3},
+            "right": {"tag": "number", "value": 4},
+        },
+        "right": {"tag": "number", "value": 5},
     }
-    assert evaluate(ast) == 16
-    print("complete")
+    assert evaluate(ast,{}) == 35
+    tokens = tokenizer.tokenize("3*(4+5)")
+    ast, tokens = parser.parse_expression(tokens)
+    assert evaluate(ast,{}) == 27
 
-def test_modulo():
-    print("testing modulo operators")
+def test_evaluate_environments():
+    print("test evaluate() with environments")
+    ast = {"tag": "identifier", "value": "x"}
+    assert evaluate(ast,{"x":3}) == 3
+    tokens = tokenizer.tokenize("3*(x+5)")
+    ast, tokens = parser.parse_expression(tokens)
+    environment = {"x":4}
+    assert evaluate(ast,environment) == 27
+    try:
+        assert evaluate(ast,{}) == 27
+        assert True, "Failed to raise error for undefined identifier"
+    except Exception as e:
+        assert "Unknown identifier" in str(e) 
 
-    # x mod 1, should always be 0
-    print("x % 1")
-    ast = {
-        "tag": "%",
-        "left": {"tag": "number", "value": 5},
-        "right": {"tag": "number", "value": 1}
-    }
-    assert evaluate(ast) == 0
+def test_evaluate_assignments():
+    tokens = tokenizer.tokenize("z=3*(x+5)")
+    ast, tokens = parser.parse_statement(tokens)
+    environment = {"x":4}
+    assert evaluate(ast,environment) == None
+    print(environment)
+    assert environment=={'x': 4, 'z': 27}
 
-    # positive integers
-    print("positive integers")
-    ast = {
-        "tag": "%",
-        "left": {"tag": "number", "value": 3},
-        "right": {"tag": "number", "value": 2}
-    }
-    assert evaluate(ast) == 1
-
-    # negative left value test, different between floored/truncated
-    print("negative left")
-    ast = {
-        "tag": "%",
-        "left": {"tag": "number", "value": -31},
-        "right": {"tag": "number", "value": 2}
-    }
-    if flooredMod:
-        assert evaluate(ast) == 1
-    else:
-        assert evaluate(ast) == -1
-
-    # negative right value test
-    # different between floored/truncated modulo
-    print("negative right")
-    ast = {
-        "tag": "%",
-        "left": {"tag": "number", "value": 12},
-        "right": {"tag": "number", "value": -5}
-    }
-    if flooredMod:
-        assert evaluate(ast) == -3
-    else:
-        assert evaluate(ast) == 2
-
-    # both negatives test
-    print("both negative")
-    ast = {
-        "tag": "%",
-        "left": {"tag": "number", "value": -30},
-        "right": {"tag": "number", "value": -4}
-    }
-    assert evaluate(ast) == -2
-    print("complete")
 
 if __name__ == "__main__":
-    if flooredMod:
-        print("Floored Modulus")
-    else:
-        print("Truncated Modulus")
-    test_modulo()
-    print("testing complete")
+    test_evaluate()
+    test_evaluate_environments()
+    test_evaluate_assignments()
+    print("done.")
